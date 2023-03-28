@@ -17,10 +17,55 @@ mutex_active_accounts = threading.Lock()
 
 class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
     '''Initializes ChatServicer that sets up the datastructures to store user accounts and messages.'''
-    def __init__(self):
+    def __init__(self, port):
+        self.port = port
+
         self.unsent_messages = {} # {username: [msg1, msg2, msg3]}
         self.accounts = [] # [username1, username2, username3]
         self.active_accounts = {} # {username: addr}
+
+        self.is_leader = False
+        self.backup_connections = {} # len 1 if a backup, len 2 if leader
+        self.leader_connection = None # None if leader, connection to leader if backup
+    
+
+    def connect_to_replicas(self, port1, port2):
+        # TODO: WRAP THINGS IN TRY CATCHES
+        if min(self.port, port1, port2) == self.port:
+            self.is_leader = True
+            print("I am the leader")
+            connection1 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{port1}"))
+            connection2 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{port2}"))
+            self.backup_connections[connection1] = port1
+            self.backup_connections[connection2] = port2
+        
+        else:
+            print("I am a backup")
+            if min(self.port, port1, port2) == port1:
+                self.leader_connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{port1}"))
+                self.backup_connections[self.leader_connection] = port2
+            else:
+                self.leader_connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{port2}"))
+                self.backup_connections[self.leader_connection] = port1
+        
+        self.ping_leader()
+    
+
+    def ping_leader(self):
+        if self.is_leader:
+            return
+        
+        try:
+            # TODO: THIS IS FAKE JUST CHECKING IF WE CAN PING OTHERS
+            # TODO: DEFINE SOME NEW GRPC PROTOBUF THINGY FUNCTION??? TO PING
+            new_text = new_route_guide_pb2.Text()
+            new_text.text = "BOB"
+            response = self.leader_connection.check_user_exists(new_text)
+            print(response)
+        
+        except:
+            print("Leader is down")
+
 
     '''Logins the user by checking the list of accounts stored in the server session.'''
     def login_user(self, request, context):
@@ -136,19 +181,27 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 """Class for running server backend functionality."""
 class ServerRunner:
     """Initialize a server instance."""
-    def __init__(self, ip = "localhost"):
-        
+    def __init__(self, ip = "localhost", port = 8050):
         self.ip = SERVER
-        self.port = PORT
+        self.port = port
 
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        self.chat_servicer = ChatServicer()
+        self.chat_servicer = ChatServicer(self.port)
+    
     """Function for starting server."""
     def start(self):
         new_route_guide_pb2_grpc.add_ChatServicer_to_server(self.chat_servicer, self.server)
         self.server.add_insecure_port(f"[::]:{self.port}")
         self.server.start()
+
+    """Function for waiting for server termination."""
+    def wait_for_termination(self):
         self.server.wait_for_termination()
+    
+    """Function for connecting to replicas."""
+    def connect_to_replicas(self, port1, port2):
+        self.chat_servicer.connect_to_replicas(port1, port2)
+
     """Function for stopping server."""
     def stop(self):
         self.server.stop(grace=None)

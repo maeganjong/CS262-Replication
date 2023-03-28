@@ -1,10 +1,11 @@
 # Connection Data
 HEADER = 64
-PORT = 8500
+PORT1 = 8500
+PORT2 = 8501
+PORT3 = 8502
 FORMAT = 'utf-8'
 ## Edit Server below to the hostname of the machine running the server
-SERVER = "dhcp-10-250-18-31.harvard.edu" 
-ADDR = (SERVER, PORT)
+SERVER = "dhcp-10-250-116-175.harvard.edu" 
 
 # Data Types
 PURPOSE = "!PURPOSE:"
