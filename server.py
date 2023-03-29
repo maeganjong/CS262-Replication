@@ -48,9 +48,14 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                 self.leader_connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{port2}"))
                 self.backup_connections[self.leader_connection] = port1
         
-        self.ping_leader()
+        try:
+            # TODO: Ping other replicas to test connection
+            pass
+        except Exception as e:
+            # Retry connecting to other replicas
+            self.connect_to_replicas(port1, port2)
     
-
+    
     def ping_leader(self):
         if self.is_leader:
             return
@@ -69,6 +74,7 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
     '''Logins the user by checking the list of accounts stored in the server session.'''
     def login_user(self, request, context):
+        print("Logging in user")
         username = request.text
         
         if username not in self.accounts:
@@ -80,6 +86,17 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             mutex_active_accounts.acquire()
             self.active_accounts[username] = context.peer()
             mutex_active_accounts.release()
+        
+        # If leader, sync replicas
+        if self.is_leader:
+            print("Updating backups...")
+            new_text = new_route_guide_pb2.Text()
+            new_text.text = username
+            for replica in self.backup_connections:
+                response = None
+                # Block until backups have been successfully updated
+                while not response or response.text != LOGIN_SUCCESSFUL:
+                    response = replica.login_user(new_text)
         
         return new_route_guide_pb2.Text(text=LOGIN_SUCCESSFUL)
 
@@ -102,6 +119,18 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             mutex_unsent_messages.acquire()
             self.unsent_messages[username] = []
             mutex_unsent_messages.release()
+
+            # If leader, sync replicas
+            if self.is_leader:
+                print("Updating backups...")
+                new_text = new_route_guide_pb2.Text()
+                new_text.text = username
+                for replica in self.backup_connections:
+                    response = None
+                    # Block until backups have been successfully updated
+                    while not response or response.text != LOGIN_SUCCESSFUL:
+                        response = replica.register_user(new_text)
+                        
             return new_route_guide_pb2.Text(text=LOGIN_SUCCESSFUL)
         
     '''Determines whether the user is currently in the registered list of users.'''
@@ -128,6 +157,13 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         mutex_unsent_messages.release()
         self.unsent_messages[recipient] = []
 
+        # If leader, sync replicas
+        if self.is_leader:
+            print("Updating backups...")
+            # TODO: UPDATE YIELD IS BEING WEIRD IDK
+
+        return new_route_guide_pb2.Text(text=UPDATE_SUCCESSFUL)
+
     '''Handles the clients sending messages to other clients'''
     def client_send_message(self, request, context):
         recipient = request.recipient
@@ -136,7 +172,21 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         mutex_unsent_messages.acquire()
         self.unsent_messages[recipient].append((sender, message))
         mutex_unsent_messages.release()
-        return new_route_guide_pb2.Text(text="Message sent!")
+
+        # If leader, sync replicas
+        if self.is_leader:
+            print("Updating backups...")
+            new_message = new_route_guide_pb2.Note()
+            new_message.sender = sender
+            new_message.recipient = recipient
+            new_message.message = message
+            for replica in self.backup_connections:
+                response = None
+                # Block until backups have been successfully updated
+                while not response or response.text != SEND_SUCCESSFUL:
+                    response = replica.client_send_message(new_message)
+
+        return new_route_guide_pb2.Text(text=SEND_SUCCESSFUL)
 
     '''Deletes the account for the client requesting the deletion'''
     def delete_account(self, request, context):
@@ -155,6 +205,18 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             mutex_accounts.release()
         except:
             return new_route_guide_pb2.Text(text=DELETION_UNSUCCESSFUL)
+
+        # If leader, sync replicas
+        if self.is_leader:
+            print("Updating backups...")
+            new_text = new_route_guide_pb2.Text()
+            new_text.text = username
+            for replica in self.backup_connections:
+                response = None
+                # Block until backups have been successfully updated
+                while not response or response.text != DELETION_SUCCESSFUL:
+                    response = replica.delete_account(new_text)
+        
         return new_route_guide_pb2.Text(text=DELETION_SUCCESSFUL)
     
     '''Displays the current registered accounts that match the regex expression given by the client'''
@@ -175,6 +237,17 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         mutex_active_accounts.acquire()
         del self.active_accounts[username]
         mutex_active_accounts.release()
+
+        # If leader, sync replicas
+        if self.is_leader:
+            print("Updating backups...")
+            new_text = new_route_guide_pb2.Text()
+            new_text.text = username
+            for replica in self.backup_connections:
+                response = None
+                # Block until backups have been successfully updated
+                while not response or response.text != LOGOUT_SUCCESSFUL:
+                    response = replica.logout(new_text)
 
         return new_route_guide_pb2.Text(text=LOGOUT_SUCCESSFUL)
 

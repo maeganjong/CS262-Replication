@@ -12,7 +12,7 @@ class ChatClient:
         
         self.connection = None
         try:
-            self.connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{PORT}"))
+            self.connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{PORT1}"))
         except Exception as e:
             print(e)
             print("Could not connect to server.")
@@ -74,7 +74,11 @@ class ChatClient:
                 response = self.connection.register_user(new_text)
                 print(response.text)
             except Exception as e:
+                # TODO: This power transition is hardcoded. Need to make it dynamic.
                 print(e)
+                self.connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{PORT2}"))
+                response = self.connection.register_user(new_text)
+                print(response)
         elif purpose == "1":
             response = self.connection.login_user(new_text)
             print(response.text)

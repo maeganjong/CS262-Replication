@@ -1,8 +1,8 @@
 # Connection Data
 HEADER = 64
-PORT1 = 8500
-PORT2 = 8501
-PORT3 = 8502
+PORT1 = 8050
+PORT2 = 8051
+PORT3 = 8052
 FORMAT = 'utf-8'
 ## Edit Server below to the hostname of the machine running the server
 SERVER = "dhcp-10-250-116-175.harvard.edu" 
@@ -37,6 +37,8 @@ USER_DOES_NOT_EXIST = "User does not exist."
 DELETION_SUCCESSFUL = "Account deleted."
 DELETION_UNSUCCESSFUL = "Account cannot be deleted."
 LOGOUT_SUCCESSFUL = "Logout successful."
+UPDATE_SUCCESSFUL = "Update successful."
+SEND_SUCCESSFUL = "Message sent!"
 
 # IDK WHERE THIS ONE IS YET
 DISCONNECT_MESSAGE = "!DISCONNECT"
