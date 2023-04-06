@@ -54,6 +54,11 @@ class ChatStub(object):
                 request_serializer=new__route__guide__pb2.Note.SerializeToString,
                 response_deserializer=new__route__guide__pb2.Text.FromString,
                 )
+        self.alive_ping = channel.unary_unary(
+                '/routeguide.Chat/alive_ping',
+                request_serializer=new__route__guide__pb2.Text.SerializeToString,
+                response_deserializer=new__route__guide__pb2.Text.FromString,
+                )
 
 
 class ChatServicer(object):
@@ -107,6 +112,12 @@ class ChatServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def alive_ping(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ChatServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -148,6 +159,11 @@ def add_ChatServicer_to_server(servicer, server):
             'client_send_message': grpc.unary_unary_rpc_method_handler(
                     servicer.client_send_message,
                     request_deserializer=new__route__guide__pb2.Note.FromString,
+                    response_serializer=new__route__guide__pb2.Text.SerializeToString,
+            ),
+            'alive_ping': grpc.unary_unary_rpc_method_handler(
+                    servicer.alive_ping,
+                    request_deserializer=new__route__guide__pb2.Text.FromString,
                     response_serializer=new__route__guide__pb2.Text.SerializeToString,
             ),
     }
@@ -292,6 +308,23 @@ class Chat(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/routeguide.Chat/client_send_message',
             new__route__guide__pb2.Note.SerializeToString,
+            new__route__guide__pb2.Text.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def alive_ping(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.Chat/alive_ping',
+            new__route__guide__pb2.Text.SerializeToString,
             new__route__guide__pb2.Text.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

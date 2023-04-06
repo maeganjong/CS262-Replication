@@ -21,6 +21,8 @@ service Chat {
     rpc client_receive_message(Text) returns (stream Note) {}
     rpc client_send_message(Note) returns (Text) {}
 
+    rpc alive_ping(Text) returns (Text) {}
+
     // rpc handle_client(Wrapper) returns (Text) {}
 
     // rpc record_chat_message(stream Note) returns (Text) {}
