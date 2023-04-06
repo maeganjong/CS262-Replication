@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.routeguide";
+option java_outer_classname = "RouteGuideProto";
+option objc_class_prefix = "RTG";
+
+package routeguide;
+
+service Chat {
+    rpc login_user(Text) returns (Text) {}
+    rpc register_user(Text) returns (Text) {}
+
+    rpc display_accounts(Text) returns (stream Text) {}
+
+    rpc check_user_exists(Text) returns (Text) {}
+    
+    rpc delete_account(Text) returns (Text) {}
+    rpc logout(Text) returns (Text) {}
+
+    rpc client_receive_message(Text) returns (stream Note) {}
+    rpc client_send_message(Note) returns (Text) {}
+
+    // rpc handle_client(Wrapper) returns (Text) {}
+
+    // rpc record_chat_message(stream Note) returns (Text) {}
+    // rpc send_unsent_messages(Text) returns (stream Note) {}
+
+    // rpc ListAccounts(Text) returns (stream Text) {}
+    // rpc ReceiveMessages(Text) returns (stream Note) {}
+    // rpc SendMessage(stream Note) returns (stream Note) {}
+}
+
+message Text {
+    string text = 1;
+}
+message Note {
+    string sender = 1;
+    string recipient = 2;
+    // int64 length = 3;
+    string message = 4;
+}
+
+message Empty {}
+
+// message Wrapper {
+//     Note note = 1;
+//     Text text = 2;
+// }
+
