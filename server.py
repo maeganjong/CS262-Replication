@@ -50,7 +50,22 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         
         try:
             # TODO: Ping other replicas to test connection
-            pass
+            new_text = new_route_guide_pb2.Text()
+            new_text.text = IS_ALIVE
+
+            if self.is_leader:
+                response = connection1.alive_ping(new_text)
+                print("Backup 1: ", response)
+
+                response = connection2.alive_ping(new_text)
+                print("Backup 2: ", response)
+            else:
+                response = self.leader_connection.alive_ping(new_text)
+                print("Leader: ", response)
+                
+                # THIS DOESN'T WORK CAUSE port1/port2 AREN'T CHATSTUBS
+                response = self.backup_connections[self.leader_connection].alive_ping(new_text)
+                print("Other backup: ", response)
         except Exception as e:
             # Retry connecting to other replicas
             self.connect_to_replicas(port1, port2)
@@ -63,13 +78,17 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         try:
             # TODO: THIS IS FAKE JUST CHECKING IF WE CAN PING OTHERS
             # TODO: DEFINE SOME NEW GRPC PROTOBUF THINGY FUNCTION??? TO PING
+            # HAS BEEN ADDRESSED
             new_text = new_route_guide_pb2.Text()
-            new_text.text = "BOB"
-            response = self.leader_connection.check_user_exists(new_text)
+            new_text.text = IS_ALIVE
+            response = self.leader_connection.alive_ping(new_text)
             print(response)
-        
         except:
             print("Leader is down")
+
+    '''Determines whether the user is currently in the registered list of users.'''
+    def alive_ping(self):
+        return new_route_guide_pb2.Text(text=LEADER_ALIVE)
 
 
     '''Logins the user by checking the list of accounts stored in the server session.'''

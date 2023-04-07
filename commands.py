@@ -39,6 +39,8 @@ DELETION_UNSUCCESSFUL = "Account cannot be deleted."
 LOGOUT_SUCCESSFUL = "Logout successful."
 UPDATE_SUCCESSFUL = "Update successful."
 SEND_SUCCESSFUL = "Message sent!"
+LEADER_ALIVE = "Leader is alive."
+IS_ALIVE = "Are you alive?"
 
 # IDK WHERE THIS ONE IS YET
 DISCONNECT_MESSAGE = "!DISCONNECT"
