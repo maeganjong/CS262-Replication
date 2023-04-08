@@ -48,27 +48,29 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                 self.leader_connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{port2}"))
                 self.backup_connections[self.leader_connection] = port1
         
-        try:
-            # TODO: Ping other replicas to test connection
-            new_text = new_route_guide_pb2.Text()
-            new_text.text = IS_ALIVE
+        # try:
+        #     # TODO: Ping other replicas to test connection
+        #     ## DOES NOT WORK - CAUSES RECURSIVE SERVER ERRORS
+        #     new_text = new_route_guide_pb2.Text()
+        #     new_text.text = IS_ALIVE
 
-            if self.is_leader:
-                response = connection1.alive_ping(new_text)
-                print("Backup 1: ", response)
+        #     if self.is_leader:
+        #         response = connection1.alive_ping(new_text)
+        #         print("Backup 1: ", response)
 
-                response = connection2.alive_ping(new_text)
-                print("Backup 2: ", response)
-            else:
-                response = self.leader_connection.alive_ping(new_text)
-                print("Leader: ", response)
+        #         response = connection2.alive_ping(new_text)
+        #         print("Backup 2: ", response)
+        #     else:
+        #         response = self.leader_connection.alive_ping(new_text)
+        #         print("Leader: ", response)
                 
-                # THIS DOESN'T WORK CAUSE port1/port2 AREN'T CHATSTUBS
-                response = self.backup_connections[self.leader_connection].alive_ping(new_text)
-                print("Other backup: ", response)
-        except Exception as e:
-            # Retry connecting to other replicas
-            self.connect_to_replicas(port1, port2)
+        #         # THIS DOESN'T WORK CAUSE port1/port2 AREN'T CHATSTUBS
+        #         # response = self.backup_connections[self.leader_connection].alive_ping(new_text)
+        #         # print("Other backup: ", response)
+        # except Exception as e:
+        #     # Retry connecting to other replicas
+        #     print("ERROR - check connect_to_replicas method")
+        #     self.connect_to_replicas(port1, port2)
     
     
     def ping_leader(self):
