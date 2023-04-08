@@ -23,6 +23,8 @@ service Chat {
 
     rpc alive_ping(Text) returns (Text) {}
 
+    rpc replica_client_receive_message(Text) returns (Text) {}
+
     // rpc handle_client(Wrapper) returns (Text) {}
 
     // rpc record_chat_message(stream Note) returns (Text) {}

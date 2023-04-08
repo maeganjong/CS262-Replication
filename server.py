@@ -181,9 +181,23 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         # If leader, sync replicas
         if self.is_leader:
             print("Updating backups...")
+            # AN ATTEMPT: because of other issues, can't really test rn. Basically, instead of yielding for backups, 
+            # I create another grpc method that just tells the replicas to clear unssent_messages
+            for connection in self.backup_connections:
+                response = connection.replica_client_receive_message(request)
+                if response.text != UPDATE_SUCCESSFUL:
+                    print("error with update backup")
+
             # TODO: UPDATE YIELD IS BEING WEIRD IDK
 
         return new_route_guide_pb2.Text(text=UPDATE_SUCCESSFUL)
+    
+    def replica_client_receive_message(self, request, context):
+        recipient = request.text
+        # Do we need a mutex here?
+        self.unsent_messages[recipient] = []
+        return new_route_guide_pb2.Text(text=UPDATE_SUCCESSFUL)
+
 
     '''Handles the clients sending messages to other clients'''
     def client_send_message(self, request, context):
