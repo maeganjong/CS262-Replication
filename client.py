@@ -10,13 +10,16 @@ class ChatClient:
         if test:
             return 
         
+        # TODO: CONSIDER MAKING 3 SERVERs???
+        """
+        List of ports of replicas in order of priority (for power transfer)
+        List will decrease in size as servers go down; first port in list is the leader
+        """
+        self.replica_ports = [PORT1, PORT2, PORT3]
         self.connection = None
-        try:
-            self.connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{PORT1}"))
-        except Exception as e:
-            print(e)
-            print("Could not connect to server.")
-            return
+
+        # Establish connection to first server
+        self.find_next_leader()
 
         atexit.register(self.disconnect)
 
@@ -41,12 +44,42 @@ class ChatClient:
             
             self.delete_or_logout()
             self.print_messages()
+    
+    def find_next_leader(self):
+        print("Finding next leader...")
+        while len(self.replica_ports) > 0:
+            current_leader_port = self.replica_ports[0]
+            try:
+                self.connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{current_leader_port}"))
+                response = self.connection.alive_ping(chat.Text(text=IS_ALIVE)) # TODO: MIGHT BUG?
+                if response.text == LEADER_ALIVE:
+                    # Send message notifying new server that they're the leader
+                    confirmation = self.connection.notify_leader(chat.Text(text=LEADER_NOTIFICATION))
+                    if confirmation.text == LEADER_CONFIRMATION:
+                        print("SWITCHING REPLICAS")
+                        # TODO: CHECK IF THERE CAN BE AN ELSE?
+                        return
+                
+                # If for some reason, it gets here (failure), remove current leader from list of ports
+                self.replica_ports.pop(0)
+            except Exception as e:
+                print(e)
+                # Remove current leader from list of ports
+                self.replica_ports.pop(0)
+        
+        print("Could not connect to any server (all replicas down).")
+        exit()
 
     '''Disconnect logs out user when process is interrupted.'''
     def disconnect(self):
+        # TODO: MIGHT NEED TO CHECK THIS LATER
         print("Disconecting...")
-        response = self.connection.logout(chat.Text(text=self.username))
-        print(response.text)
+        try:
+            response = self.connection.logout(chat.Text(text=self.username))
+            print(response.text)
+        except Exception as e:
+            # Power transfer to a backup replica
+            self.find_next_leader()
 
     '''Logins user by prompting either to register or login to their account.'''
     def login(self):
@@ -69,33 +102,26 @@ class ChatClient:
         new_text.text = username
 
         response = None
-        if purpose == "0":
-            try:
-                response = self.connection.register_user(new_text)
-                print(response.text)
-            except Exception as e:
-                # TODO: This power transition is hardcoded. Need to make it dynamic.
-                try:
-                    print(e)
-                    self.connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{PORT2}"))
+        done = False
+        while not done:
+            try: 
+                if purpose == "0":
                     response = self.connection.register_user(new_text)
-                    print(response)
-                except:
-                    try: 
-                        print(e)
-                        self.connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{PORT3}"))
-                        response = self.connection.register_user(new_text)
-                        print(response)
-                    except:
-                        print("All servers are down. Service is no longer possible.")
-        elif purpose == "1":
-            response = self.connection.login_user(new_text)
-            print(response.text)
+                elif purpose == "1":
+                    response = self.connection.login_user(new_text)
+                
+                print(response.text)
+                done = True
 
-        if response.text == LOGIN_SUCCESSFUL:
-            self.logged_in = True
-            self.username = username
-            return username, True
+                if response.text == LOGIN_SUCCESSFUL:
+                    self.logged_in = True
+                    self.username = username
+                    return username, True
+
+            except Exception as e:
+                # Power transfer to a backup replica
+                self.find_next_leader()
+
         return username, False
 
     '''Displays username accounts for the user to preview given prompt.'''
@@ -104,19 +130,34 @@ class ChatClient:
         new_text = chat.Text()
         new_text.text = recipient
         print("\nUsers:")
-        for response in self.connection.display_accounts(new_text):
-            print(response.text)
+        done = False
+        while not done:
+            try:
+                accounts = self.connection.display_accounts(new_text)
+                for account in accounts:
+                    print(account.text)
+                done = True
+            except Exception as e:
+                # Power transfer to a backup replica
+                self.find_next_leader()
+
     
     '''Prompts user to specify recipient of their message and the message body. Creates the Note object encompassing the message then sends the message to the server.'''
     def send_chat_message(self):
         recipient = input("Who do you want to send a message to?\n")
         new_text = chat.Text()
         new_text.text = recipient
-        response = self.connection.check_user_exists(new_text)
-
-        if response.text == USER_DOES_NOT_EXIST:
-            print(response.text)
-            return False
+        done = False
+        while not done:
+            try:
+                response = self.connection.check_user_exists(new_text)
+                if response.text == USER_DOES_NOT_EXIST:
+                    print(response.text)
+                    return False
+                done = True
+            except Exception as e:
+                # Power transfer to a backup replica
+                self.find_next_leader()
         
         message = input("What's your message?\n")
         new_message = chat.Note()
@@ -124,8 +165,16 @@ class ChatClient:
         new_message.recipient = recipient
         new_message.message = message
 
-        output = self.connection.client_send_message(new_message)
-        print(output.text)
+        done = False
+        while not done:
+            try:
+                output = self.connection.client_send_message(new_message)
+                print(output.text)
+                done = True
+            except Exception as e:
+                # Power transfer to a backup replica
+                self.find_next_leader()
+        
         return True
 
     '''Handles the print of all the messages sent to the user.'''
@@ -135,24 +184,47 @@ class ChatClient:
 
     '''User pulls message sent to them from the server.'''
     def receive_messages(self):
-        for note in self.connection.client_receive_message(chat.Text(text=self.username)):
-            yield f"[{note.sender} sent to {note.recipient}] {note.message}"
+        done = False
+        while not done:
+            try:
+                notes = self.connection.client_receive_message(chat.Text(text=self.username))
+                for note in notes:
+                    yield f"[{note.sender} sent to {note.recipient}] {note.message}"
+                done = True
+            except Exception as e:
+                # Power transfer to a backup replica
+                self.find_next_leader()
 
     '''Prompts user to delete or logout their account or continue the flow of their chat.'''
     def delete_or_logout(self):
         action = input("Enter 0 to delete your account. Enter 1 to logout. Anything else to continue.\n")
         if action == "0":
-            response = self.connection.delete_account(chat.Text(text=self.username))
-            print(response.text)
-            if response.text == DELETION_SUCCESSFUL:
-                self.logged_in = False
-                self.username = None
-                self.login()
+            done = False
+            while not done:
+                try:
+                    response = self.connection.delete_account(chat.Text(text=self.username))
+                    print(response.text)
+                    done = True
+                    if response.text == DELETION_SUCCESSFUL:
+                        self.logged_in = False
+                        self.username = None
+                        self.login()
+                except Exception as e:
+                    # Power transfer to a backup replica
+                    self.find_next_leader()
+        
         elif action == "1":
-            print("output")
-            response = self.connection.logout(chat.Text(text=self.username))
-            print(response.text)
-            if response.text == LOGOUT_SUCCESSFUL:
-                self.logged_in = False
-                self.username = None
-                self.login()
+            done = False
+            while not done:
+                try:
+                    response = self.connection.logout(chat.Text(text=self.username))
+                    print(response.text)
+                    done = True
+                    if response.text == LOGOUT_SUCCESSFUL:
+                        self.logged_in = False
+                        self.username = None
+                        self.login()
+                except Exception as e:
+                    # Power transfer to a backup replica
+                    self.find_next_leader()
+            

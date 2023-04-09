@@ -9,6 +9,8 @@ from concurrent import futures
 import re
 from commands import *
 
+import logging
+
 import threading
 
 mutex_unsent_messages = threading.Lock()
@@ -27,6 +29,8 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         self.is_leader = False
         self.backup_connections = {} # len 1 if a backup, len 2 if leader
         self.leader_connection = None # None if leader, connection to leader if backup
+
+        logging.basicConfig(filename=f'{port}.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
     
 
     def connect_to_replicas(self, port1, port2):
@@ -38,39 +42,22 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             connection2 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{port2}"))
             self.backup_connections[connection1] = port1
             self.backup_connections[connection2] = port2
+            logging.info(f"Leader")
         
         else:
             print("I am a backup")
             if min(self.port, port1, port2) == port1:
                 self.leader_connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{port1}"))
-                self.backup_connections[self.leader_connection] = port2
+                other_replica = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{port2}"))
+                self.backup_connections[other_replica] = port2
             else:
                 self.leader_connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{port2}"))
-                self.backup_connections[self.leader_connection] = port1
+                other_replica = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{port1}"))
+                self.backup_connections[other_replica] = port1
+            logging.info(f"Backup")
         
-        # try:
-        #     # TODO: Ping other replicas to test connection
-        #     ## DOES NOT WORK - CAUSES RECURSIVE SERVER ERRORS
-        #     new_text = new_route_guide_pb2.Text()
-        #     new_text.text = IS_ALIVE
-
-        #     if self.is_leader:
-        #         response = connection1.alive_ping(new_text)
-        #         print("Backup 1: ", response)
-
-        #         response = connection2.alive_ping(new_text)
-        #         print("Backup 2: ", response)
-        #     else:
-        #         response = self.leader_connection.alive_ping(new_text)
-        #         print("Leader: ", response)
-                
-        #         # THIS DOESN'T WORK CAUSE port1/port2 AREN'T CHATSTUBS
-        #         # response = self.backup_connections[self.leader_connection].alive_ping(new_text)
-        #         # print("Other backup: ", response)
-        # except Exception as e:
-        #     # Retry connecting to other replicas
-        #     print("ERROR - check connect_to_replicas method")
-        #     self.connect_to_replicas(port1, port2)
+        print("Connected to replicas")
+        logging.info(f"Connected to replicas")
     
     
     def ping_leader(self):
@@ -85,12 +72,21 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             new_text.text = IS_ALIVE
             response = self.leader_connection.alive_ping(new_text)
             print(response)
-        except:
+        except Exception as e:
+            print(e)
             print("Leader is down")
 
-    '''Determines whether the user is currently in the registered list of users.'''
-    def alive_ping(self):
+
+    '''Determines whether server being pinged is alive and can respond.'''
+    def alive_ping(self, request, context):
         return new_route_guide_pb2.Text(text=LEADER_ALIVE)
+    
+    """Notify the server that they are the new leader."""
+    def notify_leader(self, request, context):
+        logging.info(f"This server is now the new leader")
+        # TODO: SOME SYNCING HERE
+        print("Syncing is done")
+        return new_route_guide_pb2.Text(text=LEADER_CONFIRMATION)
 
 
     '''Logins the user by checking the list of accounts stored in the server session.'''
@@ -110,14 +106,20 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         
         # If leader, sync replicas
         if self.is_leader:
-            print("Updating backups...")
+            logging.info(f"Updating backups...")
             new_text = new_route_guide_pb2.Text()
             new_text.text = username
             for replica in self.backup_connections:
                 response = None
                 # Block until backups have been successfully updated
                 while not response or response.text != LOGIN_SUCCESSFUL:
-                    response = replica.login_user(new_text)
+                    try:
+                        response = replica.login_user(new_text)
+                    except Exception as e:
+                        print("Backup is down")
+                        break
+        
+        logging.info(f"Logged in user {username}")
         
         return new_route_guide_pb2.Text(text=LOGIN_SUCCESSFUL)
 
@@ -143,15 +145,21 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
             # If leader, sync replicas
             if self.is_leader:
-                print("Updating backups...")
+                logging.info(f"Updating backups...")
                 new_text = new_route_guide_pb2.Text()
                 new_text.text = username
                 for replica in self.backup_connections:
                     response = None
                     # Block until backups have been successfully updated
                     while not response or response.text != LOGIN_SUCCESSFUL:
-                        response = replica.register_user(new_text)
-                        
+                        try:
+                            response = replica.register_user(new_text)
+                        except Exception as e:
+                            print("Backup is down")
+                            break
+            
+            logging.info(f"Registered user {username}")
+
             return new_route_guide_pb2.Text(text=LOGIN_SUCCESSFUL)
         
     '''Determines whether the user is currently in the registered list of users.'''
@@ -183,10 +191,15 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             print("Updating backups...")
             # AN ATTEMPT: because of other issues, can't really test rn. Basically, instead of yielding for backups, 
             # I create another grpc method that just tells the replicas to clear unssent_messages
+            # TODO: add logging for this
             for connection in self.backup_connections:
-                response = connection.replica_client_receive_message(request)
-                if response.text != UPDATE_SUCCESSFUL:
-                    print("error with update backup")
+                try:
+                    response = connection.replica_client_receive_message(request)
+                    if response.text != UPDATE_SUCCESSFUL:
+                        print("error with update backup")
+                except Exception as e:
+                    print("Backup is down")
+                    break
 
             # TODO: UPDATE YIELD IS BEING WEIRD IDK
 
@@ -210,7 +223,7 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
         # If leader, sync replicas
         if self.is_leader:
-            print("Updating backups...")
+            logging.info(f"Updating backups...")
             new_message = new_route_guide_pb2.Note()
             new_message.sender = sender
             new_message.recipient = recipient
@@ -219,7 +232,13 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                 response = None
                 # Block until backups have been successfully updated
                 while not response or response.text != SEND_SUCCESSFUL:
-                    response = replica.client_send_message(new_message)
+                    try:
+                        response = replica.client_send_message(new_message)
+                    except Exception as e:
+                        print("Backup is down")
+                        break
+        
+        logging.info(f"Sent message from {sender} to {recipient}")
 
         return new_route_guide_pb2.Text(text=SEND_SUCCESSFUL)
 
@@ -243,14 +262,20 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
         # If leader, sync replicas
         if self.is_leader:
-            print("Updating backups...")
+            logging.info(f"Updating backups...")
             new_text = new_route_guide_pb2.Text()
             new_text.text = username
             for replica in self.backup_connections:
                 response = None
                 # Block until backups have been successfully updated
                 while not response or response.text != DELETION_SUCCESSFUL:
-                    response = replica.delete_account(new_text)
+                    try:
+                        response = replica.delete_account(new_text)
+                    except Exception as e:
+                        print("Backup is down")
+                        break
+
+        logging.info(f"Deleted account {username}")
         
         return new_route_guide_pb2.Text(text=DELETION_SUCCESSFUL)
     
@@ -275,14 +300,20 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
         # If leader, sync replicas
         if self.is_leader:
-            print("Updating backups...")
+            logging.info(f"Updating backups...")
             new_text = new_route_guide_pb2.Text()
             new_text.text = username
             for replica in self.backup_connections:
                 response = None
                 # Block until backups have been successfully updated
                 while not response or response.text != LOGOUT_SUCCESSFUL:
-                    response = replica.logout(new_text)
+                    try:
+                        response = replica.logout(new_text)
+                    except Exception as e:
+                        print("Backup is down")
+                        break
+        
+        logging.info(f"Logged out {username}")
 
         return new_route_guide_pb2.Text(text=LOGOUT_SUCCESSFUL)
 

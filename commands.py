@@ -5,7 +5,7 @@ PORT2 = 8051
 PORT3 = 8052
 FORMAT = 'utf-8'
 ## Edit Server below to the hostname of the machine running the server
-SERVER = "dhcp-10-250-15-170.harvard.edu" 
+SERVER = "dhcp-10-250-116-175.harvard.edu" 
 
 # Data Types
 PURPOSE = "!PURPOSE:"
@@ -39,8 +39,12 @@ DELETION_UNSUCCESSFUL = "Account cannot be deleted."
 LOGOUT_SUCCESSFUL = "Logout successful."
 UPDATE_SUCCESSFUL = "Update successful."
 SEND_SUCCESSFUL = "Message sent!"
+
+# Power transfer purposes
 LEADER_ALIVE = "Leader is alive."
 IS_ALIVE = "Are you alive?"
+LEADER_NOTIFICATION = "Leader notification." # Notifies backup that they are now leader
+LEADER_CONFIRMATION = "Leader confirmation." # Notifies client that backup is now leader
 
-# IDK WHERE THIS ONE IS YET
+# Other
 DISCONNECT_MESSAGE = "!DISCONNECT"

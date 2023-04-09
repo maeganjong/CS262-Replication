@@ -1,0 +1,7 @@
+INFO:root:Leader
+INFO:root:Connected to replicas
+INFO:root:This server is now the new leader
+INFO:root:Updating backups...
+INFO:root:Registered user alyssa
+INFO:root:Updating backups...
+INFO:root:Sent message from alyssa to alyssa
