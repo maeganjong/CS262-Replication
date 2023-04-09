@@ -51,7 +51,7 @@ class ChatClient:
             current_leader_port = self.replica_ports[0]
             try:
                 self.connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{current_leader_port}"))
-                response = self.connection.alive_ping(chat.Text(text=IS_ALIVE)) # TODO: MIGHT BUG?
+                response = self.connection.alive_ping(chat.Text(text=IS_ALIVE))
                 if response.text == LEADER_ALIVE:
                     # Send message notifying new server that they're the leader
                     confirmation = self.connection.notify_leader(chat.Text(text=LEADER_NOTIFICATION))
@@ -193,6 +193,9 @@ class ChatClient:
                 done = True
             except Exception as e:
                 # Power transfer to a backup replica
+                # TODO: THIS METHOD DOES NOT WORK!!!! figure out later lmfao
+                print(e)
+                raise "STOP"
                 self.find_next_leader()
 
     '''Prompts user to delete or logout their account or continue the flow of their chat.'''

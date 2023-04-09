@@ -1,4 +1,8 @@
 INFO:root:Backup
 INFO:root:Connected to replicas
-INFO:root:Registered user alyssa
-INFO:root:Sent message from alyssa to alyssa
+INFO:root:Registration successful!: alyssa
+INFO:root:Message sent!: alyssa: alyssa: hi myself
+INFO:root:Logout successful.: alyssa
+INFO:root:Registration successful!: dale
+INFO:root:Message sent!: dale: alyssa: hi aly
+INFO:root:Logout successful.: dale

@@ -19,7 +19,7 @@ mutex_active_accounts = threading.Lock()
 
 class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
     '''Initializes ChatServicer that sets up the datastructures to store user accounts and messages.'''
-    def __init__(self, port):
+    def __init__(self, port, logfile = None):
         self.port = port
 
         self.unsent_messages = {} # {username: [msg1, msg2, msg3]}
@@ -31,7 +31,69 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         self.leader_connection = None # None if leader, connection to leader if backup
 
         logging.basicConfig(filename=f'{port}.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
+
+        if logfile:
+            # Persistence: all servers went down and set up this server from the log file
+            self.set_state_from_file(logfile)
     
+
+    def set_state_from_file(self, logfile):
+        # Every server should act like a backup server at this point (no updating others just itself)
+        header = "INFO:root:"
+        print(logfile)
+        f = open(logfile, "r")
+        for line in f:
+            if line.startswith(header):
+                line = line[len(header):]
+                line = line[:-1] # remove newline char at end of string
+            parsed_line = line.split(SEPARATOR)
+            
+            purpose = parsed_line[0]
+            if purpose == LOGIN_SUCCESSFUL:
+                username = parsed_line[1]
+                request = new_route_guide_pb2.Text()
+                request.text = username
+
+                self.login_user(request, None)
+            elif purpose == REGISTRATION_SUCCESSFUL:
+                username = parsed_line[1]
+                request = new_route_guide_pb2.Text()
+                request.text = username
+
+                self.register_user(request, None)
+            elif purpose == SEND_SUCCESSFUL:
+                sender = parsed_line[1]
+                recipient = parsed_line[2]
+                message = SEPARATOR.join(parsed_line[3:])
+
+                request = new_route_guide_pb2.Note()
+                request.sender = sender
+                request.recipient = recipient
+                request.message = message
+
+                self.client_send_message(request, None)
+            elif purpose == UPDATE_SUCCESSFUL:
+                username = parsed_line[1]
+                request = new_route_guide_pb2.Text()
+                request.text = username
+
+                self.client_receive_message(request, None)
+            elif purpose == DELETION_UNSUCCESSFUL:
+                username = parsed_line[1]
+                request = new_route_guide_pb2.Text()
+                request.text = username
+
+                self.delete_account(request, None)
+            elif purpose == LOGOUT_SUCCESSFUL:
+                username = parsed_line[1]
+                request = new_route_guide_pb2.Text()
+                request.text = username
+
+                self.logout(request, None)
+            else:
+                continue
+
+        f.close()
 
     def connect_to_replicas(self, port1, port2):
         # TODO: WRAP THINGS IN TRY CATCHES
@@ -101,7 +163,9 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         else:
             # Log in user
             mutex_active_accounts.acquire()
-            self.active_accounts[username] = context.peer()
+            # self.active_accounts[username] = context.peer()
+            # TODO: check this?
+            self.active_accounts[username] = None
             mutex_active_accounts.release()
         
         # If leader, sync replicas
@@ -112,27 +176,32 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             for replica in self.backup_connections:
                 response = None
                 # Block until backups have been successfully updated
-                while not response or response.text != LOGIN_SUCCESSFUL:
-                    try:
-                        response = replica.login_user(new_text)
-                    except Exception as e:
-                        print("Backup is down")
-                        break
+                try:
+                    response = replica.login_user(new_text)
+                except Exception as e:
+                    print("Backup is down")
+                    break
         
-        logging.info(f"Logged in user {username}")
+        logging.info(LOGIN_SUCCESSFUL + SEPARATOR + username)
         
         return new_route_guide_pb2.Text(text=LOGIN_SUCCESSFUL)
 
     '''Registers user given the client's input and compares with existing account stores.'''
     def register_user(self, request, context):
         username = request.text
+        # Additional check for log reading in persistence
+        if SEPARATOR in username:
+            return new_route_guide_pb2.Text(text="Username cannot contain the character: {SEPARATOR}")
+        
         if username in self.accounts:
             return new_route_guide_pb2.Text(text="Username already exists.")
         else:
             print(f"Registering {username}")
             # Register and log in user
             mutex_active_accounts.acquire()
-            self.active_accounts[username] = context.peer()
+            # TODO: check this?
+            self.active_accounts[username] = None
+            # self.active_accounts[username] = context.peer()
             mutex_active_accounts.release()
 
             mutex_accounts.acquire()
@@ -151,14 +220,13 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                 for replica in self.backup_connections:
                     response = None
                     # Block until backups have been successfully updated
-                    while not response or response.text != LOGIN_SUCCESSFUL:
-                        try:
-                            response = replica.register_user(new_text)
-                        except Exception as e:
-                            print("Backup is down")
-                            break
+                    try:
+                        response = replica.register_user(new_text)
+                    except Exception as e:
+                        print("Backup is down")
+                        break
             
-            logging.info(f"Registered user {username}")
+            logging.info(REGISTRATION_SUCCESSFUL + SEPARATOR + username)
 
             return new_route_guide_pb2.Text(text=LOGIN_SUCCESSFUL)
         
@@ -174,6 +242,10 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
     def client_receive_message(self, request, context):
         lastindex = 0
         recipient = request.text
+
+        # TODO: THIS NEEDS TO BE MOVED FOR THE SAKE OF PERSISTENCE TTESTIGN HERE FOR NOW; so that backups also have it!!
+        logging.info(UPDATE_SUCCESSFUL + SEPARATOR + recipient)
+
         mutex_unsent_messages.acquire()
         while len(self.unsent_messages[recipient]) > lastindex:
             sender, message = self.unsent_messages[recipient][lastindex]
@@ -189,11 +261,13 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         # If leader, sync replicas
         if self.is_leader:
             print("Updating backups...")
+            # TODO: CHECK THIS?
             # AN ATTEMPT: because of other issues, can't really test rn. Basically, instead of yielding for backups, 
             # I create another grpc method that just tells the replicas to clear unssent_messages
             # TODO: add logging for this
             for connection in self.backup_connections:
                 try:
+                    # TODO: HANDLE DIFFEENTLY
                     response = connection.replica_client_receive_message(request)
                     if response.text != UPDATE_SUCCESSFUL:
                         print("error with update backup")
@@ -207,8 +281,9 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
     
     def replica_client_receive_message(self, request, context):
         recipient = request.text
-        # Do we need a mutex here?
+        mutex_unsent_messages.acquire()
         self.unsent_messages[recipient] = []
+        mutex_unsent_messages.release()
         return new_route_guide_pb2.Text(text=UPDATE_SUCCESSFUL)
 
 
@@ -231,14 +306,13 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             for replica in self.backup_connections:
                 response = None
                 # Block until backups have been successfully updated
-                while not response or response.text != SEND_SUCCESSFUL:
-                    try:
-                        response = replica.client_send_message(new_message)
-                    except Exception as e:
-                        print("Backup is down")
-                        break
+                try:
+                    response = replica.client_send_message(new_message)
+                except Exception as e:
+                    print("Backup is down")
+                    break
         
-        logging.info(f"Sent message from {sender} to {recipient}")
+        logging.info(SEND_SUCCESSFUL + SEPARATOR + sender + SEPARATOR + recipient + SEPARATOR + message)
 
         return new_route_guide_pb2.Text(text=SEND_SUCCESSFUL)
 
@@ -268,14 +342,13 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             for replica in self.backup_connections:
                 response = None
                 # Block until backups have been successfully updated
-                while not response or response.text != DELETION_SUCCESSFUL:
-                    try:
-                        response = replica.delete_account(new_text)
-                    except Exception as e:
-                        print("Backup is down")
-                        break
+                try:
+                    response = replica.delete_account(new_text)
+                except Exception as e:
+                    print("Backup is down")
+                    break
 
-        logging.info(f"Deleted account {username}")
+        logging.info(DELETION_SUCCESSFUL + SEPARATOR + username)
         
         return new_route_guide_pb2.Text(text=DELETION_SUCCESSFUL)
     
@@ -306,26 +379,25 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             for replica in self.backup_connections:
                 response = None
                 # Block until backups have been successfully updated
-                while not response or response.text != LOGOUT_SUCCESSFUL:
-                    try:
-                        response = replica.logout(new_text)
-                    except Exception as e:
-                        print("Backup is down")
-                        break
+                try:
+                    response = replica.logout(new_text)
+                except Exception as e:
+                    print("Backup is down")
+                    break
         
-        logging.info(f"Logged out {username}")
+        logging.info(LOGOUT_SUCCESSFUL + SEPARATOR + username)
 
         return new_route_guide_pb2.Text(text=LOGOUT_SUCCESSFUL)
 
 """Class for running server backend functionality."""
 class ServerRunner:
     """Initialize a server instance."""
-    def __init__(self, ip = "localhost", port = 8050):
+    def __init__(self, ip = "localhost", port = 8050, logfile=None):
         self.ip = SERVER
         self.port = port
 
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        self.chat_servicer = ChatServicer(self.port)
+        self.chat_servicer = ChatServicer(self.port, logfile=logfile)
     
     """Function for starting server."""
     def start(self):

@@ -15,7 +15,7 @@ LENGTH = "!LENGTH:"
 BODY = "!BODY:"
 
 # General
-SEPARATOR = "/"
+SEPARATOR = ": "
 MAX_BANDWIDTH = 2048 
 
 # Client Purposes
@@ -33,6 +33,7 @@ NOTIFY = "!NOTIFY"
 
 # Printable messages from NOTIFY
 LOGIN_SUCCESSFUL = "Login successful!"
+REGISTRATION_SUCCESSFUL = "Registration successful!"
 USER_DOES_NOT_EXIST = "User does not exist."
 DELETION_SUCCESSFUL = "Account deleted."
 DELETION_UNSUCCESSFUL = "Account cannot be deleted."
