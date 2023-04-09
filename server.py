@@ -27,7 +27,7 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         self.active_accounts = {} # {username: addr}
 
         self.is_leader = False
-        self.backup_connections = {} # len 1 if a backup, len 2 if leader
+        self.backup_connections = {} # len 1 if a backup, len 2 if leader (at start)
         self.leader_connection = None # None if leader, connection to leader if backup
 
         logging.basicConfig(filename=f'{port}.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
@@ -37,61 +37,62 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             self.set_state_from_file(logfile)
     
 
-    def set_state_from_file(self, logfile):
-        # Every server should act like a backup server at this point (no updating others just itself)
+    def process_line(self, line):
         header = "INFO:root:"
-        print(logfile)
-        f = open(logfile, "r")
-        for line in f:
-            if line.startswith(header):
+        if line.startswith(header):
                 line = line[len(header):]
                 line = line[:-1] # remove newline char at end of string
-            parsed_line = line.split(SEPARATOR)
-            
-            purpose = parsed_line[0]
-            if purpose == LOGIN_SUCCESSFUL:
-                username = parsed_line[1]
-                request = new_route_guide_pb2.Text()
-                request.text = username
+        parsed_line = line.split(SEPARATOR)
+        
+        purpose = parsed_line[0]
+        if purpose == LOGIN_SUCCESSFUL:
+            username = parsed_line[1]
+            request = new_route_guide_pb2.Text()
+            request.text = username
 
-                self.login_user(request, None)
-            elif purpose == REGISTRATION_SUCCESSFUL:
-                username = parsed_line[1]
-                request = new_route_guide_pb2.Text()
-                request.text = username
+            self.login_user(request, None)
+        elif purpose == REGISTRATION_SUCCESSFUL:
+            username = parsed_line[1]
+            request = new_route_guide_pb2.Text()
+            request.text = username
 
-                self.register_user(request, None)
-            elif purpose == SEND_SUCCESSFUL:
-                sender = parsed_line[1]
-                recipient = parsed_line[2]
-                message = SEPARATOR.join(parsed_line[3:])
+            self.register_user(request, None)
+        elif purpose == SEND_SUCCESSFUL:
+            sender = parsed_line[1]
+            recipient = parsed_line[2]
+            message = SEPARATOR.join(parsed_line[3:])
 
-                request = new_route_guide_pb2.Note()
-                request.sender = sender
-                request.recipient = recipient
-                request.message = message
+            request = new_route_guide_pb2.Note()
+            request.sender = sender
+            request.recipient = recipient
+            request.message = message
 
-                self.client_send_message(request, None)
-            elif purpose == UPDATE_SUCCESSFUL:
-                username = parsed_line[1]
-                request = new_route_guide_pb2.Text()
-                request.text = username
+            self.client_send_message(request, None)
+        elif purpose == UPDATE_SUCCESSFUL:
+            username = parsed_line[1]
+            request = new_route_guide_pb2.Text()
+            request.text = username
 
-                self.client_receive_message(request, None)
-            elif purpose == DELETION_UNSUCCESSFUL:
-                username = parsed_line[1]
-                request = new_route_guide_pb2.Text()
-                request.text = username
+            self.client_receive_message(request, None)
+        elif purpose == DELETION_UNSUCCESSFUL:
+            username = parsed_line[1]
+            request = new_route_guide_pb2.Text()
+            request.text = username
 
-                self.delete_account(request, None)
-            elif purpose == LOGOUT_SUCCESSFUL:
-                username = parsed_line[1]
-                request = new_route_guide_pb2.Text()
-                request.text = username
+            self.delete_account(request, None)
+        elif purpose == LOGOUT_SUCCESSFUL:
+            username = parsed_line[1]
+            request = new_route_guide_pb2.Text()
+            request.text = username
 
-                self.logout(request, None)
-            else:
-                continue
+            self.logout(request, None)
+    
+
+    def set_state_from_file(self, logfile):
+        # Every server should act like a backup server at this point (no updating others just itself)
+        f = open(logfile, "r")
+        for line in f:
+            self.process_line(line)
 
         f.close()
 
@@ -120,35 +121,39 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         
         print("Connected to replicas")
         logging.info(f"Connected to replicas")
-    
-    
-    def ping_leader(self):
-        if self.is_leader:
-            return
-        
-        try:
-            # TODO: THIS IS FAKE JUST CHECKING IF WE CAN PING OTHERS
-            # TODO: DEFINE SOME NEW GRPC PROTOBUF THINGY FUNCTION??? TO PING
-            # HAS BEEN ADDRESSED
-            new_text = new_route_guide_pb2.Text()
-            new_text.text = IS_ALIVE
-            response = self.leader_connection.alive_ping(new_text)
-            print(response)
-        except Exception as e:
-            print(e)
-            print("Leader is down")
 
 
     '''Determines whether server being pinged is alive and can respond.'''
     def alive_ping(self, request, context):
         return new_route_guide_pb2.Text(text=LEADER_ALIVE)
     
+    
     """Notify the server that they are the new leader."""
     def notify_leader(self, request, context):
+        self.sync_backups()
+        print("Backup syncing is done")
+        self.is_leader = True
         logging.info(f"This server is now the new leader")
-        # TODO: SOME SYNCING HERE
-        print("Syncing is done")
         return new_route_guide_pb2.Text(text=LEADER_CONFIRMATION)
+
+
+    """Syncs the backups with the new leader's state."""
+    def sync_backups(self):
+        # Operates on the assumption that the new leader is the first (of all the backups) to sync with ex-leader
+        # Send all accounts to backups
+        new_leader_log_file = f'{self.port}.log'
+        for replica in self.backup_connections:
+            replica_log_file = f'{self.backup_connections[replica]}.log'
+            
+            lines1 = list(open(new_leader_log_file, "r"))
+            lines2 = list(open(replica_log_file, "r"))
+
+            if len(lines1) != len(lines2):
+                # Not synced; lines1 must have more lines
+                for unsynced_line in lines1[len(lines2):]:
+                    self.process_line(unsynced_line)
+
+        logging.info(f"Backups synced")
 
 
     '''Logins the user by checking the list of accounts stored in the server session.'''

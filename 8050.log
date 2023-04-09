@@ -1,24 +1,27 @@
 INFO:root:Registration successful!: alyssa
-INFO:root:Message sent!: alyssa: alyssa: hi myself
+INFO:root:Message sent!: alyssa: alyssa: hi aly
 INFO:root:Logout successful.: alyssa
 INFO:root:Registration successful!: dale
-INFO:root:Message sent!: dale: alyssa: hi aly
-INFO:root:Logout successful.: dale
+INFO:root:Message sent!: dale: alyssa: hi alyssa
 INFO:root:Leader
 INFO:root:Connected to replicas
+INFO:root:Backups synced
 INFO:root:This server is now the new leader
 INFO:root:Updating backups...
 INFO:root:Login successful!: alyssa
 INFO:root:Update successful.: alyssa
 INFO:root:Update successful.: alyssa
 INFO:root:Updating backups...
-INFO:root:Message sent!: alyssa: dale: hi dale2
+INFO:root:Message sent!: alyssa: dale: hi dale
 INFO:root:Update successful.: alyssa
 INFO:root:Updating backups...
 INFO:root:Logout successful.: alyssa
+ERROR:grpc._server:Exception calling application: ''
+Traceback (most recent call last):
+  File "/Users/alyssahuang/miniconda3/lib/python3.10/site-packages/grpc/_server.py", line 494, in _call_behavior
+    response_or_iterator = behavior(argument, context)
+  File "/Users/alyssahuang/Documents/CS262/CS262-Replication/server.py", line 376, in logout
+    del self.active_accounts[username]
+KeyError: ''
 INFO:root:Updating backups...
-INFO:root:Login successful!: dale
-INFO:root:Update successful.: dale
-INFO:root:Update successful.: dale
-INFO:root:Updating backups...
-INFO:root:Logout successful.: dale
+INFO:root:Message sent!: alyssa: dale: hi dale
