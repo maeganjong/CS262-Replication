@@ -72,7 +72,7 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             request = new_route_guide_pb2.Text()
             request.text = username
 
-            self.client_receive_message(request, None)
+            self.replica_client_receive_message(request, None)
         elif purpose == DELETION_UNSUCCESSFUL:
             username = parsed_line[1]
             request = new_route_guide_pb2.Text()
