@@ -1,7 +1,8 @@
 from server import *
 
 # Chat server for persistence. Run after all other chat servers are down.
-chat_server = ServerRunner(ip=SERVER1, port=PORT1, logfile = "8052.log") # NOTE THESE CANNOT BE THE SAME!
+logname = "8052.log"
+chat_server = ServerRunner(ip=SERVER1, port=PORT1, logfile = logname) # NOTE THESE CANNOT BE THE SAME!
 print("[STARTING] lead server is starting...")
 chat_server.start()
 

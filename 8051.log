@@ -1,9 +1,18 @@
-INFO:8051:Registration successfulUpdate successful.: alyssa
+Registration successful!: alyssa
 Update successful.: alyssa
-NFO:8050:Registration successful!: alyssa
-INFO:8050:Update successful.: alyssa
-INFO:8051:Update successful.: alyssa
-INFO:8052:Update successful.: alyssa
-INFO:8050:Update successful.: alyssa
-INFO:8051:Update successful.: alyssa
-INFO:8052:Update successful.: alyssa
+Registration successful!: maegan
+Update successful.: maegan
+Update successful.: maegan
+Update successful.: alyssa
+Message sent!: alyssa: maegan: hi 1
+Update successful.: alyssa
+Message sent!: maegan: alyssa: hi 1- maegan
+Update successful.: maegan
+Update successful.: alyssa
+Update successful.: maegan
+Update successful.: alyssa
+Update successful.: maegan
+Message sent!: alyssa: maegan: hi 2
+Update successful.: alyssa
+Message sent!: maegan: alyssa: hi 2 - maegan
+Update successful.: maegan
