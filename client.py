@@ -43,9 +43,9 @@ class ChatClient:
             
             self.delete_or_logout()
             self.print_messages()
-    
+
+    '''Finds the next leader when the existing leader was down'''
     def find_next_leader(self):
-        print("Finding next leader...")
         while len(self.replica_addresses) > 0:
             current_leader_server, current_leader_port = self.replica_addresses[0]
             try:
@@ -56,7 +56,6 @@ class ChatClient:
                     confirmation = self.connection.notify_leader(chat.Text(text=LEADER_NOTIFICATION))
                     if confirmation.text == LEADER_CONFIRMATION:
                         print("SWITCHING REPLICAS")
-                        # TODO: CHECK IF THERE CAN BE AN ELSE?
                         return
                 
                 # If for some reason, it gets here (failure), remove current leader from list of ports
@@ -70,9 +69,9 @@ class ChatClient:
 
     '''Disconnect logs out user when process is interrupted.'''
     def disconnect(self):
-        # TODO: MIGHT NEED TO CHECK THIS LATER
         print("Disconecting...")
         try:
+            # Logs out the user gracefully
             response = self.connection.logout(chat.Text(text=self.username))
             print(response.text)
         except Exception as e:
