@@ -1,3 +1,5 @@
+Backup Test File for Backup Sync
+
 INFO:root:Backup 2
 INFO:root:Connected to replicas
 INFO:root:Registration successful!: alyssa
@@ -8,6 +10,4 @@ INFO:root:Update successful.: alyssa
 INFO:root:Logout successful.: alyssa
 INFO:root:Registration successful!: maegan
 INFO:root:Update successful.: maegan
-INFO:root:Update successful.: maegan
-INFO:root:Message sent!: maegan: alyssa: hi hanging
 INFO:root:Update successful.: maegan

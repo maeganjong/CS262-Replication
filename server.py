@@ -171,7 +171,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
             if len(lines1) != len(lines2):
                 # Not synced; lines1 must have more lines
-                print(lines1[len(lines2):])
                 for unsynced_line in lines1[len(lines2):]:
                     self.process_line(unsynced_line)
 

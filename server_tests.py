@@ -7,6 +7,39 @@ from io import StringIO
 
 # pytest server_tests.py
 
+def test_persistence():
+    # Testing persistence
+    server = ChatServicer(logfile="test_persistence.log")
+
+    assert len(server.accounts) == 2
+    assert "alyssa" in server.accounts
+    assert "maegan" in server.accounts
+    assert "alyssa" in server.unsent_messages
+    assert len(server.unsent_messages["alyssa"]) == 1
+    assert server.unsent_messages["alyssa"][0] == ('maegan', "hi hanging")
+
+
+def test_backup_sync():
+    # Testing backup sync
+    server = ChatServicer(port=1050)
+
+    server.replica_client_receive_message = MagicMock()
+    server.client_send_message = MagicMock()
+
+    server.backup_connections = {"test_backup": 1051}
+
+    # No hanging message logged
+    new_server = ChatServicer(logfile="1051.log")
+    assert "alyssa" in new_server.unsent_messages
+    assert len(new_server.unsent_messages["alyssa"]) == 0
+
+    # Test backup sync
+    server.sync_backups()
+
+    server.client_send_message.assert_called_once()
+    server.replica_client_receive_message.assert_called_once()
+
+
 def test_login_flow():
     # Testing login flow
     server = ChatServicer()
