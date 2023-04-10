@@ -30,9 +30,9 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         self.backup_connections = {} # len 1 if a backup, len 2 if leader (at start)
         self.other_servers = {} # for logging purposes
 
-        self.setup_logger(PORT1, f'{PORT1}.log')
-        self.setup_logger(PORT2, f'{PORT2}.log')
-        self.setup_logger(PORT3, f'{PORT3}.log')
+        self.setup_logger(f'{PORT1}', f'{PORT1}.log')
+        self.setup_logger(f'{PORT2}', f'{PORT2}.log')
+        self.setup_logger(f'{PORT3}', f'{PORT3}.log')
         
         # self.loggers = []
         # logging.basicConfig(filename=f'{port}.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
