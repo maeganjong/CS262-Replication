@@ -63,7 +63,6 @@ class ChatClient:
                 # If for some reason, it gets here (failure), remove current leader from list of ports
                 self.replica_ports.pop(0)
             except Exception as e:
-                print(e)
                 # Remove current leader from list of ports
                 self.replica_ports.pop(0)
         
