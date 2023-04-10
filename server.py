@@ -19,7 +19,7 @@ mutex_active_accounts = threading.Lock()
 
 class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
     '''Initializes ChatServicer that sets up the datastructures to store user accounts and messages.'''
-    def __init__(self, port, logfile = None):
+    def __init__(self, port=8050, logfile = None):
         self.port = port
 
         self.unsent_messages = {} # {username: [msg1, msg2, msg3]}
@@ -97,7 +97,7 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             request = new_route_guide_pb2.Text()
             request.text = username
 
-            self.client_receive_message(request, None)
+            self.replica_client_receive_message(request, None)
         elif purpose == DELETION_UNSUCCESSFUL:
             username = parsed_line[1]
             request = new_route_guide_pb2.Text()

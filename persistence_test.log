@@ -1,3 +1,5 @@
+INFO:root:Backup 2
+INFO:root:Connected to replicas
 INFO:root:Registration successful!: alyssa
 INFO:root:Update successful.: alyssa
 INFO:root:Update successful.: alyssa
@@ -9,12 +11,3 @@ INFO:root:Update successful.: maegan
 INFO:root:Update successful.: maegan
 INFO:root:Message sent!: maegan: alyssa: hi hanging
 INFO:root:Update successful.: maegan
-INFO:root:Leader
-INFO:root:Connected to replicas
-INFO:root:Backups synced
-INFO:root:This server is now the new leader
-INFO:root:Updating backups...
-INFO:root:Login successful!: alyssa
-INFO:root:Update successful.: alyssa
-INFO:root:Updating backups...
-INFO:root:Logout successful.: alyssa

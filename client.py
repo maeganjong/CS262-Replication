@@ -182,7 +182,6 @@ class ChatClient:
 
     '''User pulls message sent to them from the server.'''
     def receive_messages(self):
-        print("INSIDE BUGGY CODE")
         done = False
         while not done:
             try:
