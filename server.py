@@ -224,10 +224,13 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                     print("Backup is down")
         
         text = LOGIN_SUCCESSFUL + SEPARATOR + username
-        logger = logging.getLogger(f'{self.port}')
-        logger.info(text)
-        for other in self.other_servers:
-            other.log_update(new_route_guide_pb2.Note(sender=f'{self.port}', recipient="", message=text))
+        try:
+            logger = logging.getLogger(f'{self.port}')
+            logger.info(text)
+            for other in self.other_servers:
+                other.log_update(new_route_guide_pb2.Note(sender=f'{self.port}', recipient="", message=text))
+        except Exception as e:
+            print("Error logging to other servers")
         
         return new_route_guide_pb2.Text(text=LOGIN_SUCCESSFUL)
 
@@ -272,10 +275,13 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             
             #  logging.info()
             text = REGISTRATION_SUCCESSFUL + SEPARATOR + username
-            logger = logging.getLogger(f'{self.port}')
-            logger.info(text)
-            for other in self.other_servers:
-                other.log_update(new_route_guide_pb2.Note(sender=f'{self.port}', recipient="", message=text))
+            try:
+                logger = logging.getLogger(f'{self.port}')
+                logger.info(text)
+                for other in self.other_servers:
+                    other.log_update(new_route_guide_pb2.Note(sender=f'{self.port}', recipient="", message=text))
+            except Exception as e:
+                print("Error logging update")
 
             return new_route_guide_pb2.Text(text=LOGIN_SUCCESSFUL)
         
