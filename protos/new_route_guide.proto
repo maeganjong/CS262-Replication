@@ -27,6 +27,8 @@ service Chat {
 
     rpc log_update(Note) returns (Text) {}
 
+    rpc notify_leader(Text) returns (Text) {}
+
     // rpc handle_client(Wrapper) returns (Text) {}
 
     // rpc record_chat_message(stream Note) returns (Text) {}
