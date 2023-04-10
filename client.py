@@ -192,9 +192,6 @@ class ChatClient:
                 done = True
             except Exception as e:
                 # Power transfer to a backup replica
-                # TODO: THIS METHOD DOES NOT WORK!!!! figure out later lmfao
-                print(e)
-                raise "STOP"
                 self.find_next_leader()
 
     '''Prompts user to delete or logout their account or continue the flow of their chat.'''
