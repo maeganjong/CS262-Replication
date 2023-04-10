@@ -138,7 +138,7 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             logger = logging.getLogger(f'{PORT1}')
             logger.info(text)
             for other in self.other_servers:
-                other.log_update(new_route_guide_pb2.Note(sender=PORT1, recipient=None, message=text))
+                other.log_update(new_route_guide_pb2.Note(sender=PORT1, recipient="", message=text))
         elif self.port == PORT2:
             print("I am a backup 8051")
             connection1 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER1}:{PORT1}"))
