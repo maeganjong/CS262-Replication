@@ -24,7 +24,7 @@ In the situation that all three servers are down, a new server can be brought up
 1. Open a new terminal session for the server.
 2. Run `python3 run_chat_server_persistence.py`.
 
-## Understanding Log files
+## Understanding Log Files
 - Each log file is named according to the port number of the server writing to that file.
 - Log files capture all major actions of the chat messaging service.
 - Log files can be used to provide persistence of the system.
