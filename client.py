@@ -10,12 +10,11 @@ class ChatClient:
         if test:
             return 
         
-        # TODO: CONSIDER MAKING 3 SERVERs???
         """
         List of ports of replicas in order of priority (for power transfer)
         List will decrease in size as servers go down; first port in list is the leader
         """
-        self.replica_ports = [PORT1, PORT2, PORT3]
+        self.replica_addresses = [(SERVER1, PORT1), (SERVER2, PORT2), (SERVER3, PORT3)]
         self.connection = None
 
         # Establish connection to first server
@@ -47,10 +46,10 @@ class ChatClient:
     
     def find_next_leader(self):
         print("Finding next leader...")
-        while len(self.replica_ports) > 0:
-            current_leader_port = self.replica_ports[0]
+        while len(self.replica_addresses) > 0:
+            current_leader_server, current_leader_port = self.replica_addresses[0]
             try:
-                self.connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER}:{current_leader_port}"))
+                self.connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{current_leader_server}:{current_leader_port}"))
                 response = self.connection.alive_ping(chat.Text(text=IS_ALIVE))
                 if response.text == LEADER_ALIVE:
                     # Send message notifying new server that they're the leader
@@ -61,10 +60,10 @@ class ChatClient:
                         return
                 
                 # If for some reason, it gets here (failure), remove current leader from list of ports
-                self.replica_ports.pop(0)
+                self.replica_addresses.pop(0)
             except Exception as e:
                 # Remove current leader from list of ports
-                self.replica_ports.pop(0)
+                self.replica_addresses.pop(0)
         
         print("Could not connect to any server (all replicas down).")
         exit()

@@ -5,7 +5,9 @@ PORT2 = 8051
 PORT3 = 8052
 FORMAT = 'utf-8'
 ## Edit Server below to the hostname of the machine running the server
-SERVER = "dhcp-10-250-116-175.harvard.edu" 
+SERVER1 = "dhcp-10-250-116-175.harvard.edu" 
+SERVER2 = "dhcp-10-250-116-175.harvard.edu" 
+SERVER3 = "dhcp-10-250-116-175.harvard.edu" 
 
 # Data Types
 PURPOSE = "!PURPOSE:"
