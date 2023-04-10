@@ -135,7 +135,7 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             self.other_servers[connection2] = PORT3
             text = "Leader"
             # logging.info(text)
-            logger = logging.getLogger(PORT1)
+            logger = logging.getLogger(f'{PORT1}')
             logger.info(text)
             for other in self.other_servers:
                 other.log_update(new_route_guide_pb2.Note(sender=PORT1, recipient=None, message=text))
