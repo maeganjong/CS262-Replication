@@ -28,7 +28,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
         self.is_leader = False
         self.backup_connections = {} # len 1 if a backup, len 2 if leader (at start)
-        self.leader_connection = None # None if leader, connection to leader if backup
 
         logging.basicConfig(filename=f'{port}.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
 
@@ -98,26 +97,26 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
     def connect_to_replicas(self, address1, address2):
         # TODO: WRAP THINGS IN TRY CATCHES
-        server1, port1 = address1
-        server2, port2 = address2
-        if min(self.port, port1, port2) == self.port:
+        # server1, port1 = address1
+        # server2, port2 = address2
+        if self.port == PORT1:
             self.is_leader = True
             print("I am the leader")
-            connection1 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{server1}:{port1}"))
-            connection2 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{server2}:{port2}"))
-            self.backup_connections[connection1] = port1
-            self.backup_connections[connection2] = port2
+            connection1 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER2}:{PORT2}"))
+            connection2 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER3}:{PORT3}"))
+            self.backup_connections[connection1] = PORT2
+            self.backup_connections[connection2] = PORT3
             logging.info(f"Leader")
         
+        elif self.port == PORT2:
+            print("I am a backup 8051")
+            other_replica = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER3}:{SERVER3}"))
+            self.backup_connections[other_replica] = PORT3
+            logging.info(f"Backup 1")
+        
         else:
-            print("I am a backup")
-            if min(self.port, port1, port2) == port1:
-                self.leader_connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{server1}:{port1}"))
-                other_replica = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{server2}:{port2}"))
-                self.backup_connections[other_replica] = port2
-            else:
-                self.leader_connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{server2}:{port2}"))
-            logging.info(f"Backup")
+            print("I am a backup 8052")
+            logging.info(f"Backup 2")
         
         print("Connected to replicas")
         logging.info(f"Connected to replicas")
@@ -147,6 +146,9 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             
             lines1 = list(open(new_leader_log_file, "r"))
             lines2 = list(open(replica_log_file, "r"))
+
+            print(lines1)
+            print(lines2)
 
             if len(lines1) != len(lines2):
                 # Not synced; lines1 must have more lines
