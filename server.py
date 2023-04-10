@@ -188,7 +188,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                     response = replica.login_user(new_text)
                 except Exception as e:
                     print("Backup is down")
-                    break
         
         logging.info(LOGIN_SUCCESSFUL + SEPARATOR + username)
         
@@ -232,7 +231,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                         response = replica.register_user(new_text)
                     except Exception as e:
                         print("Backup is down")
-                        break
             
             logging.info(REGISTRATION_SUCCESSFUL + SEPARATOR + username)
 
@@ -281,7 +279,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                         print("error with update backup")
                 except Exception as e:
                     print("Backup is down")
-                    break
 
             # TODO: UPDATE YIELD IS BEING WEIRD IDK
 
@@ -319,7 +316,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                     response = replica.client_send_message(new_message)
                 except Exception as e:
                     print("Backup is down")
-                    break
         
         logging.info(SEND_SUCCESSFUL + SEPARATOR + sender + SEPARATOR + recipient + SEPARATOR + message)
 
@@ -355,7 +351,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                     response = replica.delete_account(new_text)
                 except Exception as e:
                     print("Backup is down")
-                    break
 
         logging.info(DELETION_SUCCESSFUL + SEPARATOR + username)
         
@@ -392,7 +387,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                     response = replica.logout(new_text)
                 except Exception as e:
                     print("Backup is down")
-                    break
         
         logging.info(LOGOUT_SUCCESSFUL + SEPARATOR + username)
 

@@ -1,16 +1,13 @@
-INFO:root:Backup
+INFO:root:Backup 1
 INFO:root:Connected to replicas
-INFO:root:Registration successful!: maegan
-INFO:root:Update successful.: maegan
-INFO:root:Update successful.: maegan
 INFO:root:Registration successful!: alyssa
 INFO:root:Update successful.: alyssa
+INFO:root:Registration successful!: maegan
+INFO:root:Update successful.: maegan
 INFO:root:Update successful.: alyssa
-INFO:root:Message sent!: alyssa: alyssa: hi maegan!
+INFO:root:Update successful.: maegan
+INFO:root:Message sent!: alyssa: maegan: hi 1 - alyssa
 INFO:root:Update successful.: alyssa
-INFO:root:Message sent!: maegan: alyssa: nothing
+INFO:root:Message sent!: maegan: alyssa: hi 1 - maegan
 INFO:root:Update successful.: maegan
-INFO:root:Update successful.: maegan
-INFO:root:Update successful.: maegan
-INFO:root:Message sent!: maegan: alyssa: hi
 INFO:root:Update successful.: maegan
