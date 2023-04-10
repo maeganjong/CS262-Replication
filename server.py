@@ -289,6 +289,7 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         mutex_unsent_messages.acquire()
         self.unsent_messages[recipient] = []
         mutex_unsent_messages.release()
+        logging.info(UPDATE_SUCCESSFUL + SEPARATOR + recipient)
         return new_route_guide_pb2.Text(text=UPDATE_SUCCESSFUL)
 
 
