@@ -1,2 +1,12 @@
-INFO:root:Backup 1
-INFO:root:Connected to replicas
+Registration successful!: alyssa
+Login successful!: alyssa
+1:Registration successful!: alyssa
+INFO:8050:Registration successful!: alyssa
+INFO:root:Update successful.: alyssa
+INFO:root:Update successful.: alyssa
+INFO:root:Message sent!: alyssa: alyssa: hi mysefl
+INFO:root:Update successful.: alyssa
+INFO:root:Logout successful.: alyssa
+INFO:8051:Login successful!: alyssa
+INFO:8050:Login successful!: alyssa
+INFO:root:Update successful.: alyssa

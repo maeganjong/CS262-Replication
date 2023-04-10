@@ -133,8 +133,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             self.backup_connections[connection2] = PORT3
             self.other_servers[connection1] = PORT2
             self.other_servers[connection2] = PORT3
-            # text = "Leader"
-            # logging.info(text)
             
         elif self.port == PORT2:
             print("I am a backup 8051")
@@ -143,17 +141,14 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             self.backup_connections[connection3] = PORT3
             self.other_servers[connection1] = PORT1
             self.other_servers[connection3] = PORT3
-            logging.info(f"Backup 1")
         else:
             connection1 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER1}:{PORT1}"))
             connection2 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER2}:{PORT2}"))
             self.other_servers[connection1] = PORT1
             self.other_servers[connection2] = PORT2
             print("I am a backup 8052")
-            logging.info(f"Backup 2")
         
         print("Connected to replicas")
-        logging.info(f"Connected to replicas")
 
 
     '''Determines whether server being pinged is alive and can respond.'''
@@ -166,7 +161,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         self.sync_backups()
         print("Backup syncing is done")
         self.is_leader = True
-        logging.info(f"This server is now the new leader")
         return new_route_guide_pb2.Text(text=LEADER_CONFIRMATION)
 
 
@@ -190,8 +184,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                 for unsynced_line in lines1[len(lines2):]:
                     self.process_line(unsynced_line)
 
-        logging.info(f"Backups synced")
-
 
     '''Logins the user by checking the list of accounts stored in the server session.'''
     def login_user(self, request, context):
@@ -212,7 +204,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         
         # If leader, sync replicas
         if self.is_leader:
-            logging.info(f"Updating backups...")
             new_text = new_route_guide_pb2.Text()
             new_text.text = username
             for replica in self.backup_connections:
@@ -262,7 +253,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
             # If leader, sync replicas
             if self.is_leader:
-                # logging.info(f"Updating backups...")
                 new_text = new_route_guide_pb2.Text()
                 new_text.text = username
                 for replica in self.backup_connections:
@@ -273,7 +263,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                     except Exception as e:
                         print("Backup is down")
             
-            #  logging.info()
             text = REGISTRATION_SUCCESSFUL + SEPARATOR + username
             try:
                 logger = logging.getLogger(f'{self.port}')
@@ -299,7 +288,14 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         recipient = request.text
 
         # TODO: THIS NEEDS TO BE MOVED FOR THE SAKE OF PERSISTENCE TTESTIGN HERE FOR NOW; so that backups also have it!!
-        logging.info(UPDATE_SUCCESSFUL + SEPARATOR + recipient)
+        text = UPDATE_SUCCESSFUL + SEPARATOR + recipient
+        try:
+            logger = logging.getLogger(f'{self.port}')
+            logger.info(text)
+            for other in self.other_servers:
+                other.log_update(new_route_guide_pb2.Note(sender=f'{self.port}', recipient="", message=text))
+        except Exception as e:
+            print("Error logging update")
 
         mutex_unsent_messages.acquire()
         while len(self.unsent_messages[recipient]) > lastindex:
@@ -338,7 +334,16 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         mutex_unsent_messages.acquire()
         self.unsent_messages[recipient] = []
         mutex_unsent_messages.release()
-        logging.info(UPDATE_SUCCESSFUL + SEPARATOR + recipient)
+        
+        text = UPDATE_SUCCESSFUL + SEPARATOR + recipient
+        try:
+            logger = logging.getLogger(f'{self.port}')
+            logger.info(text)
+            for other in self.other_servers:
+                other.log_update(new_route_guide_pb2.Note(sender=f'{self.port}', recipient="", message=text))
+        except Exception as e:
+            print("Error logging to other servers")
+        
         return new_route_guide_pb2.Text(text=UPDATE_SUCCESSFUL)
 
 
@@ -353,7 +358,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
         # If leader, sync replicas
         if self.is_leader:
-            #  logging.info(f"Updating backups...")
             new_message = new_route_guide_pb2.Note()
             new_message.sender = sender
             new_message.recipient = recipient
@@ -366,8 +370,14 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                 except Exception as e:
                     print("Backup is down")
         
-        logging.info(SEND_SUCCESSFUL + SEPARATOR + sender + SEPARATOR + recipient + SEPARATOR + message)
-
+        text = SEND_SUCCESSFUL + SEPARATOR + sender + SEPARATOR + recipient + SEPARATOR + message
+        try:
+            logger = logging.getLogger(f'{self.port}')
+            logger.info(text)
+            for other in self.other_servers:
+                other.log_update(new_route_guide_pb2.Note(sender=f'{self.port}', recipient="", message=text))
+        except Exception as e:
+            print("Error logging to other servers")
         return new_route_guide_pb2.Text(text=SEND_SUCCESSFUL)
 
     '''Deletes the account for the client requesting the deletion'''
@@ -390,7 +400,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
         # If leader, sync replicas
         if self.is_leader:
-            # logging.info(f"Updating backups...")
             new_text = new_route_guide_pb2.Text()
             new_text.text = username
             for replica in self.backup_connections:
@@ -401,7 +410,14 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                 except Exception as e:
                     print("Backup is down")
 
-        logging.info(DELETION_SUCCESSFUL + SEPARATOR + username)
+        text = DELETION_SUCCESSFUL + SEPARATOR + username
+        try:
+            logger = logging.getLogger(f'{self.port}')
+            logger.info(text)
+            for other in self.other_servers:
+                other.log_update(new_route_guide_pb2.Note(sender=f'{self.port}', recipient="", message=text))
+        except Exception as e:
+            print("Error logging to other servers")
         
         return new_route_guide_pb2.Text(text=DELETION_SUCCESSFUL)
     
@@ -426,7 +442,6 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
         # If leader, sync replicas
         if self.is_leader:
-            logging.info(f"Updating backups...")
             new_text = new_route_guide_pb2.Text()
             new_text.text = username
             for replica in self.backup_connections:
@@ -437,7 +452,14 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                 except Exception as e:
                     print("Backup is down")
         
-        logging.info(LOGOUT_SUCCESSFUL + SEPARATOR + username)
+        text = LOGOUT_SUCCESSFUL + SEPARATOR + username
+        try:
+            logger = logging.getLogger(f'{self.port}')
+            logger.info(text)
+            for other in self.other_servers:
+                other.log_update(new_route_guide_pb2.Note(sender=f'{self.port}', recipient="", message=text))
+        except Exception as e:
+            print("Error logging to other servers")
 
         return new_route_guide_pb2.Text(text=LOGOUT_SUCCESSFUL)
 
