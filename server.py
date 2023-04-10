@@ -28,13 +28,38 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
 
         self.is_leader = False
         self.backup_connections = {} # len 1 if a backup, len 2 if leader (at start)
+        self.other_servers = {} # for logging purposes
 
-        logging.basicConfig(filename=f'{port}.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
+        self.setup_logger(PORT1, f'{PORT1}.log')
+        self.setup_logger(PORT2, f'{PORT2}.log')
+        self.setup_logger(PORT3, f'{PORT3}.log')
+        
+        # self.loggers = []
+        # logging.basicConfig(filename=f'{port}.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
 
         if logfile:
             # Persistence: all servers went down and set up this server from the log file
             self.set_state_from_file(logfile)
-    
+
+    def setup_logger(self, logger_name, log_file, level=logging.INFO):
+        l = logging.getLogger(logger_name)
+        formatter = logging.Formatter('%(message)s')
+        fileHandler = logging.FileHandler(log_file, mode='w')
+        fileHandler.setFormatter(formatter)
+        streamHandler = logging.StreamHandler()
+        streamHandler.setFormatter(formatter)
+
+        l.setLevel(level)
+        l.addHandler(fileHandler)
+        l.addHandler(streamHandler) 
+
+    def log_update(self, request, context):
+        machine = request.sender
+        log_message = request.message
+        logger = logging.getLogger(machine)
+        logger.info(log_message)
+        return new_route_guide_pb2.Text(text="Done")
+        
 
     def process_line(self, line):
         header = "INFO:root:"
@@ -106,15 +131,27 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
             connection2 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER3}:{PORT3}"))
             self.backup_connections[connection1] = PORT2
             self.backup_connections[connection2] = PORT3
-            logging.info(f"Leader")
-        
+            self.other_servers[connection1] = PORT2
+            self.other_servers[connection2] = PORT3
+            text = "Leader"
+            # logging.info(text)
+            logger = logging.getLogger(PORT1)
+            logger.info(text)
+            for other in self.other_servers:
+                other.log_update(new_route_guide_pb2.Note(sender=PORT1, recipient=None, message=text))
         elif self.port == PORT2:
             print("I am a backup 8051")
-            other_replica = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER3}:{SERVER3}"))
-            self.backup_connections[other_replica] = PORT3
+            connection1 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER1}:{PORT1}"))
+            connection3 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER3}:{PORT3}"))
+            self.backup_connections[connection3] = PORT3
+            self.other_servers[connection1] = PORT1
+            self.other_servers[connection3] = PORT3
             logging.info(f"Backup 1")
-        
         else:
+            connection1 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER1}:{PORT1}"))
+            connection2 = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{SERVER2}:{PORT2}"))
+            self.other_servers[connection1] = PORT1
+            self.other_servers[connection2] = PORT2
             print("I am a backup 8052")
             logging.info(f"Backup 2")
         

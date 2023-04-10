@@ -59,14 +59,14 @@ class ChatStub(object):
                 request_serializer=new__route__guide__pb2.Text.SerializeToString,
                 response_deserializer=new__route__guide__pb2.Text.FromString,
                 )
-        self.notify_leader = channel.unary_unary(
-                '/routeguide.Chat/notify_leader',
-                request_serializer=new__route__guide__pb2.Text.SerializeToString,
-                response_deserializer=new__route__guide__pb2.Text.FromString,
-                )
         self.replica_client_receive_message = channel.unary_unary(
                 '/routeguide.Chat/replica_client_receive_message',
                 request_serializer=new__route__guide__pb2.Text.SerializeToString,
+                response_deserializer=new__route__guide__pb2.Text.FromString,
+                )
+        self.log_update = channel.unary_unary(
+                '/routeguide.Chat/log_update',
+                request_serializer=new__route__guide__pb2.Note.SerializeToString,
                 response_deserializer=new__route__guide__pb2.Text.FromString,
                 )
 
@@ -128,13 +128,13 @@ class ChatServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def notify_leader(self, request, context):
+    def replica_client_receive_message(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def replica_client_receive_message(self, request, context):
+    def log_update(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -188,14 +188,14 @@ def add_ChatServicer_to_server(servicer, server):
                     request_deserializer=new__route__guide__pb2.Text.FromString,
                     response_serializer=new__route__guide__pb2.Text.SerializeToString,
             ),
-            'notify_leader': grpc.unary_unary_rpc_method_handler(
-                    servicer.notify_leader,
-                    request_deserializer=new__route__guide__pb2.Text.FromString,
-                    response_serializer=new__route__guide__pb2.Text.SerializeToString,
-            ),
             'replica_client_receive_message': grpc.unary_unary_rpc_method_handler(
                     servicer.replica_client_receive_message,
                     request_deserializer=new__route__guide__pb2.Text.FromString,
+                    response_serializer=new__route__guide__pb2.Text.SerializeToString,
+            ),
+            'log_update': grpc.unary_unary_rpc_method_handler(
+                    servicer.log_update,
+                    request_deserializer=new__route__guide__pb2.Note.FromString,
                     response_serializer=new__route__guide__pb2.Text.SerializeToString,
             ),
     }
@@ -362,23 +362,6 @@ class Chat(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def notify_leader(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/routeguide.Chat/notify_leader',
-            new__route__guide__pb2.Text.SerializeToString,
-            new__route__guide__pb2.Text.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
     def replica_client_receive_message(request,
             target,
             options=(),
@@ -391,6 +374,23 @@ class Chat(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/routeguide.Chat/replica_client_receive_message',
             new__route__guide__pb2.Text.SerializeToString,
+            new__route__guide__pb2.Text.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def log_update(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/routeguide.Chat/log_update',
+            new__route__guide__pb2.Note.SerializeToString,
             new__route__guide__pb2.Text.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
