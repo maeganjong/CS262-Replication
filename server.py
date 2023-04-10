@@ -117,8 +117,9 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
                 self.backup_connections[other_replica] = port2
             else:
                 self.leader_connection = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{server2}:{port2}"))
-                other_replica = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{server1}:{port1}"))
-                self.backup_connections[other_replica] = port1
+                # TODO: TRY commenting out for no doubles
+                # other_replica = new_route_guide_pb2_grpc.ChatStub(grpc.insecure_channel(f"{server1}:{port1}"))
+                # self.backup_connections[other_replica] = port1
             logging.info(f"Backup")
         
         print("Connected to replicas")
