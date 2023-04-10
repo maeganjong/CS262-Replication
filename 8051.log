@@ -1,12 +1,9 @@
-Registration successful!: alyssa
-Login successful!: alyssa
-1:Registration successful!: alyssa
-INFO:8050:Registration successful!: alyssa
-INFO:root:Update successful.: alyssa
-INFO:root:Update successful.: alyssa
-INFO:root:Message sent!: alyssa: alyssa: hi mysefl
-INFO:root:Update successful.: alyssa
-INFO:root:Logout successful.: alyssa
-INFO:8051:Login successful!: alyssa
-INFO:8050:Login successful!: alyssa
-INFO:root:Update successful.: alyssa
+INFO:8051:Registration successfulUpdate successful.: alyssa
+Update successful.: alyssa
+NFO:8050:Registration successful!: alyssa
+INFO:8050:Update successful.: alyssa
+INFO:8051:Update successful.: alyssa
+INFO:8052:Update successful.: alyssa
+INFO:8050:Update successful.: alyssa
+INFO:8051:Update successful.: alyssa
+INFO:8052:Update successful.: alyssa

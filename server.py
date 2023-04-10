@@ -35,7 +35,7 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
         self.setup_logger(f'{PORT3}', f'{PORT3}.log')
         
         # self.loggers = []
-        logging.basicConfig(filename=f'{port}.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
+        #  logging.basicConfig(filename=f'{port}.log', encoding='utf-8', level=logging.DEBUG, filemode="w")
 
         if logfile:
             # Persistence: all servers went down and set up this server from the log file
