@@ -62,9 +62,9 @@ class ChatServicer(new_route_guide_pb2_grpc.ChatServicer):
     '''Processes log files for starting the persistence server'''
     def process_line(self, line):
         header = "INFO:root:"
+        line = line[:-1] # remove newline char at end of string
         if line.startswith(header):
                 line = line[len(header):]
-                line = line[:-1] # remove newline char at end of string
         parsed_line = line.split(SEPARATOR)
         
         purpose = parsed_line[0]
